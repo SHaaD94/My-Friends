@@ -9,7 +9,7 @@ interface CurrentTimeProvider {
 
 /**
  * For sake of simplicity milliseconds are used
- * Obviously, it would be pretty weak idea to use only this timestamp for conflict resolution in prod
+ * Obviously, it would be pretty poor choice for prod
  */
 @ApplicationScoped
 class SimpleCurrentTimeProvider(private val clock: Clock = Clock.systemUTC()) : CurrentTimeProvider {

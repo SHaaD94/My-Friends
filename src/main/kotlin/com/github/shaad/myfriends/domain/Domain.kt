@@ -1,5 +1,8 @@
 package com.github.shaad.myfriends.domain
 
+import com.fasterxml.jackson.annotation.JsonSubTypes
+import com.fasterxml.jackson.annotation.JsonTypeInfo
+
 data class AddPersonRequest(val name: String)
 data class DoesPersonExistRequest(val name: String)
 data class DoesPersonExistResponse(val exists: Boolean)
@@ -21,4 +24,22 @@ data class Friendship private constructor(val p1: Person, val p2: Person) {
     }
 }
 
+data class ChunksRequest(val fromTs: Long)
+
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = JsonTypeInfo.As.PROPERTY,
+    property = "type"
+)
+@JsonSubTypes(
+    JsonSubTypes.Type(value = AddPersonEvent::class, name = "addPersonEvent"),
+    JsonSubTypes.Type(value = RemovePersonEvent::class, name = "removePersonEvent"),
+    JsonSubTypes.Type(value = AddFriendshipEvent::class, name = "addFriendshipEvent"),
+    JsonSubTypes.Type(value = RemoveFriendshipEvent::class, name = "removeFriendshipEvent")
+)
+sealed class Event(open val ts: Long)
+data class AddPersonEvent(override val ts: Long, val name: String) : Event(ts)
+data class RemovePersonEvent(override val ts: Long, val name: String) : Event(ts)
+data class AddFriendshipEvent(override val ts: Long, val from: String, val to: String) : Event(ts)
+data class RemoveFriendshipEvent(override val ts: Long, val from: String, val to: String) : Event(ts)
 

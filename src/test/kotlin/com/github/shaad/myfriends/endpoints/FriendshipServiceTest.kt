@@ -1,7 +1,6 @@
 package com.github.shaad.myfriends.endpoints
 
-import com.github.shaad.myfriends.service.CurrentTimeProvider
-import com.github.shaad.myfriends.service.FriendshipService
+import com.github.shaad.myfriends.service.*
 import org.junit.jupiter.api.Test
 import org.wildfly.common.Assert.assertTrue
 import java.util.concurrent.atomic.AtomicLong
@@ -12,7 +11,11 @@ class FriendshipServiceTest {
         private val now = AtomicLong(0)
         override fun now(): Long = now.incrementAndGet()
     }
-    private val service = FriendshipService(monotonicallyIncreasingTimeProvider)
+    private val emptySyncProvider = object : SyncDataProvider {
+        override fun getUpdates(fromTs: Long): Iterator<Event> = emptyList<Event>().iterator()
+    }
+    private val service =
+        FriendshipService(monotonicallyIncreasingTimeProvider, InMemoryEventLogService(), emptySyncProvider)
 
     @Test
     fun `Must add and check existence properly`() {

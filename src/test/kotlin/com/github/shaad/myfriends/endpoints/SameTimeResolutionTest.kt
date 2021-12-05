@@ -1,7 +1,6 @@
 package com.github.shaad.myfriends.endpoints
 
-import com.github.shaad.myfriends.service.CurrentTimeProvider
-import com.github.shaad.myfriends.service.FriendshipService
+import com.github.shaad.myfriends.service.*
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import org.wildfly.common.Assert.assertTrue
@@ -13,7 +12,10 @@ class SameTimeResolutionTest {
     private val singleTimeProvider = object : CurrentTimeProvider {
         override fun now(): Long = 0L
     }
-    private val service = FriendshipService(singleTimeProvider)
+    private val emptySyncProvider = object : SyncDataProvider {
+        override fun getUpdates(fromTs: Long): Iterator<Event> = emptyList<Event>().iterator()
+    }
+    private val service = FriendshipService(singleTimeProvider, InMemoryEventLogService(), emptySyncProvider)
 
     @Test
     fun `If timestamp of add and remove are same, consider element removed`() {

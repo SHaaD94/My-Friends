@@ -4,6 +4,9 @@ buildscript {
     repositories {
         maven {
             url = uri("https://plugins.gradle.org/m2/")
+            mavenCentral()
+            gradlePluginPortal()
+            url = uri("https://raw.githubusercontent.com/graalvm/native-build-tools/snapshots")
         }
     }
     dependencies {
@@ -13,7 +16,8 @@ buildscript {
 
 plugins {
     kotlin("jvm") version "1.5.10"
-    id ("io.quarkus") version "2.5.1.Final"
+    id("io.quarkus") version "2.5.1.Final"
+    id("org.graalvm.buildtools.native") version "0.9.8"
     id("org.jetbrains.kotlin.plugin.allopen") version "1.5.10"
     application
 }
@@ -24,7 +28,6 @@ version = "1.0"
 object Versions {
     const val kotlinVersion = "1.5.10"
     const val quarkusVersion = "2.5.1.Final"
-    const val kotlinxCoroutinesVersion = "1.5.1"
 }
 
 apply(plugin = "io.quarkus")
@@ -41,9 +44,7 @@ dependencies {
     implementation("io.quarkus:quarkus-config-yaml")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
-
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation(enforcedPlatform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:${Versions.kotlinxCoroutinesVersion}"))
 
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
