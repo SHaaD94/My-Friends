@@ -25,6 +25,7 @@ class FriendshipService(private val timeProvider: CurrentTimeProvider) {
 
     fun getFriends(name: String): List<String> {
         val person = name2Person[name] ?: return emptyList()
+        if (!doesExist(person)) return emptyList()
         val visited = mutableSetOf<Person>()
         val queue = LinkedList<Person>()
         queue.add(person)
@@ -42,24 +43,37 @@ class FriendshipService(private val timeProvider: CurrentTimeProvider) {
 
     fun getHandshakes(fromName: String, toName: String): List<String> {
         val from = name2Person[fromName] ?: return emptyList()
+        if (!doesExist(from)) return emptyList()
         val to = name2Person[toName] ?: return emptyList()
+        if (!doesExist(toName)) return emptyList()
         val visited = mutableSetOf<Person>()
-        val queue = LinkedList<LinkedList<Person>>()
-        val startList = LinkedList<Person>()
-        startList.add(from)
-        queue.add(startList)
+        val queue = LinkedList<Person>()
+        val previous = HashMap<Person, Person>()
+        queue.add(from)
+
+        fun buildResultPath(): List<String> {
+            var currentPerson = to
+            val resultPath = LinkedList<String>()
+            resultPath.add(currentPerson.name)
+            while (currentPerson != from) {
+                currentPerson = previous[currentPerson]!!
+                resultPath.addFirst(currentPerson.name)
+            }
+            return resultPath
+        }
+
         while (queue.isNotEmpty()) {
-            val curPath = queue.pollFirst()
-            val curPerson = curPath.last
-            visited.add(curPerson)
+            val curPerson = queue.pollFirst()
             val friendships = person2Friendships[curPerson] ?: continue
+            visited.add(curPerson)
             friendships.filter { doesExist(it) }.forEach { (p1, p2) ->
                 val next = if (p1 == curPerson) p2 else p1
                 if (visited.contains(next)) return@forEach
-                val nextPath = LinkedList(curPath)
-                nextPath.add(next)
-                if (next == to) return nextPath.map { it.name }
-                queue.add(nextPath)
+                previous[next] = curPerson
+                if (next == to) {
+                    return buildResultPath()
+                }
+                queue.add(next)
             }
         }
         return emptyList()

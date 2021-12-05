@@ -3,10 +3,8 @@ package com.github.shaad.myfriends.endpoints
 import com.github.shaad.myfriends.service.CurrentTimeProvider
 import com.github.shaad.myfriends.service.FriendshipService
 import org.junit.jupiter.api.Test
-import org.wildfly.common.Assert
 import org.wildfly.common.Assert.assertTrue
 import java.util.concurrent.atomic.AtomicLong
-import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 
 class FriendshipServiceTest {
