@@ -1,6 +1,8 @@
 package com.github.shaad.myfriends.service
 
 import com.github.shaad.myfriends.domain.*
+import com.github.shaad.myfriends.util.WithLogger
+import org.jboss.logging.Logger
 import java.util.*
 import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicLong
@@ -12,7 +14,7 @@ class FriendshipService(
     private val timeProvider: CurrentTimeProvider,
     private val eventLogService: EventLogService,
     private val syncManager: SyncDataProvider
-) {
+) : WithLogger {
     private val peopleAdded = ConcurrentSkipListMap<Person, AtomicLong>()
     private val peopleRemoved = ConcurrentSkipListMap<Person, AtomicLong>()
     private val person2Friendships = ConcurrentHashMap<Person, MutableSet<Friendship>>()
@@ -143,25 +145,31 @@ class FriendshipService(
     fun sync() {
         val now = timeProvider.now()
         var maxTs = now
-        syncManager.getUpdates(now).forEach { event ->
-            maxTs = max(maxTs, event.ts)
-            when (event) {
-                is AddPersonEvent -> updateTsIfLess(event.ts, peopleAdded, Person(event.name))
-                is RemovePersonEvent -> updateTsIfLess(event.ts, peopleRemoved, Person(event.name))
-                is AddFriendshipEvent -> {
-                    val fr = Friendship.instance(Person(event.from), Person(event.to))
-                    updateTsIfLess(event.ts, friendshipsAdded, fr)
-                    person2Friendships.computeIfAbsent(fr.p1) { ConcurrentHashMap.newKeySet() }.add(fr)
-                    person2Friendships.computeIfAbsent(fr.p2) { ConcurrentHashMap.newKeySet() }.add(fr)
+        try {
+            log().info("Starting sync")
+            syncManager.getUpdates(now).forEach { event ->
+                maxTs = max(maxTs, event.ts)
+                when (event) {
+                    is AddPersonEvent -> updateTsIfLess(event.ts, peopleAdded, Person(event.name))
+                    is RemovePersonEvent -> updateTsIfLess(event.ts, peopleRemoved, Person(event.name))
+                    is AddFriendshipEvent -> {
+                        val fr = Friendship.instance(Person(event.from), Person(event.to))
+                        updateTsIfLess(event.ts, friendshipsAdded, fr)
+                        person2Friendships.computeIfAbsent(fr.p1) { ConcurrentHashMap.newKeySet() }.add(fr)
+                        person2Friendships.computeIfAbsent(fr.p2) { ConcurrentHashMap.newKeySet() }.add(fr)
+                    }
+                    is RemoveFriendshipEvent -> updateTsIfLess(
+                        event.ts,
+                        friendshipsRemoved,
+                        Friendship.instance(Person(event.from), Person(event.to))
+                    )
                 }
-                is RemoveFriendshipEvent -> updateTsIfLess(
-                    event.ts,
-                    friendshipsRemoved,
-                    Friendship.instance(Person(event.from), Person(event.to))
-                )
             }
+            lastSyncDate.set(now)
+        } catch (e: Exception) {
+            log().error("Failed to sync", e)
         }
-        lastSyncDate.set(now)
+
     }
 
     fun stop() = schedulingTask.cancel(true)

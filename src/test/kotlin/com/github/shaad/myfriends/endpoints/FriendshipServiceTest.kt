@@ -1,5 +1,6 @@
 package com.github.shaad.myfriends.endpoints
 
+import com.github.shaad.myfriends.domain.Event
 import com.github.shaad.myfriends.service.*
 import org.junit.jupiter.api.Test
 import org.wildfly.common.Assert.assertTrue
@@ -12,7 +13,7 @@ class FriendshipServiceTest {
         override fun now(): Long = now.incrementAndGet()
     }
     private val emptySyncProvider = object : SyncDataProvider {
-        override fun getUpdates(fromTs: Long): Iterator<Event> = emptyList<Event>().iterator()
+        override fun getUpdates(fromTs: Long): Sequence<Event> = emptySequence()
     }
     private val service =
         FriendshipService(monotonicallyIncreasingTimeProvider, InMemoryEventLogService(), emptySyncProvider)

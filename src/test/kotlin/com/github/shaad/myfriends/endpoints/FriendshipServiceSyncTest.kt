@@ -1,5 +1,6 @@
 package com.github.shaad.myfriends.endpoints;
 
+import com.github.shaad.myfriends.domain.*
 import com.github.shaad.myfriends.service.*
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -19,7 +20,7 @@ class FriendshipServiceSyncTest {
             events.forEach { this.events.add(it) }
         }
 
-        override fun getUpdates(fromTs: Long): Iterator<Event> = events.filter { it.ts >= fromTs }.iterator()
+        override fun getUpdates(fromTs: Long): Sequence<Event> = events.filter { it.ts >= fromTs }.asSequence()
     }
     private val service =
         FriendshipService(manualTimeProvider, InMemoryEventLogService(), syncProvider)

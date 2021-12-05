@@ -4,12 +4,12 @@ import com.github.shaad.myfriends.domain.Event
 import javax.enterprise.context.ApplicationScoped
 
 interface SyncDataProvider {
-    fun getUpdates(fromTs: Long): Iterator<Event>
+    fun getUpdates(fromTs: Long): Sequence<Event>
 }
 
 @ApplicationScoped
-class CrossServiceSyncDataProvider(private val logService: EventLogService) : SyncDataProvider {
-    override fun getUpdates(fromTs: Long): Iterator<Event> {
-        return logService.readEvents(fromTs)
+class CrossServiceSyncDataProvider(private val apiClient: SyncAPIClient) : SyncDataProvider {
+    override fun getUpdates(fromTs: Long): Sequence<Event> {
+        return apiClient.getEvents(fromTs, "http://127.0.0.1:8081").toCompletableFuture().get().asSequence()
     }
 }

@@ -24,8 +24,6 @@ data class Friendship private constructor(val p1: Person, val p2: Person) {
     }
 }
 
-data class ChunksRequest(val fromTs: Long)
-
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
     include = JsonTypeInfo.As.PROPERTY,

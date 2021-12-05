@@ -1,5 +1,6 @@
 package com.github.shaad.myfriends.endpoints
 
+import com.github.shaad.myfriends.domain.Event
 import com.github.shaad.myfriends.service.*
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
@@ -13,7 +14,7 @@ class SameTimeResolutionTest {
         override fun now(): Long = 0L
     }
     private val emptySyncProvider = object : SyncDataProvider {
-        override fun getUpdates(fromTs: Long): Iterator<Event> = emptyList<Event>().iterator()
+        override fun getUpdates(fromTs: Long): Sequence<Event> = emptySequence()
     }
     private val service = FriendshipService(singleTimeProvider, InMemoryEventLogService(), emptySyncProvider)
 
