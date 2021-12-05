@@ -4,27 +4,30 @@ import com.github.shaad.myfriends.domain.Friendship
 import com.github.shaad.myfriends.domain.Person
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 import javax.enterprise.context.ApplicationScoped
 
 @ApplicationScoped
 class FriendshipService(private val timeProvider: CurrentTimeProvider) {
-    private val name2Person = ConcurrentHashMap<String, Person>()
     private val peopleAdded = ConcurrentHashMap<Person, Long>()
     private val peopleRemoved = ConcurrentHashMap<Person, Long>()
     private val person2Friendships = ConcurrentHashMap<Person, MutableSet<Friendship>>()
     private val friendshipsAdded = ConcurrentHashMap<Friendship, Long>()
     private val friendshipsRemoved = ConcurrentHashMap<Friendship, Long>()
 
-    fun addPerson(name: String) {
-        val person = name2Person.computeIfAbsent(name) { Person(it) }
-        require(!peopleRemoved.contains(person)) { "Can not add removed person" }
+    fun addPerson(name: String): Person {
+        val person = Person(name)
         peopleAdded[person] = timeProvider.getNowNanos()
+        // `now` supposed to be always greater than any data already existed
+        peopleRemoved.remove(person)
+
+        return person
     }
 
-    fun doesExist(name: String): Boolean = name2Person[name]?.let { doesExist(it) } ?: false
+    fun doesExist(name: String): Boolean = doesExist(Person(name))
 
     fun getFriends(name: String): List<String> {
-        val person = name2Person[name] ?: return emptyList()
+        val person = Person(name)
         if (!doesExist(person)) return emptyList()
         val visited = mutableSetOf<Person>()
         val queue = LinkedList<Person>()
@@ -42,9 +45,9 @@ class FriendshipService(private val timeProvider: CurrentTimeProvider) {
     }
 
     fun getHandshakes(fromName: String, toName: String): List<String> {
-        val from = name2Person[fromName] ?: return emptyList()
+        val from = Person(fromName)
         if (!doesExist(from)) return emptyList()
-        val to = name2Person[toName] ?: return emptyList()
+        val to = Person(toName)
         if (!doesExist(toName)) return emptyList()
         val visited = mutableSetOf<Person>()
         val queue = LinkedList<Person>()
@@ -80,27 +83,37 @@ class FriendshipService(private val timeProvider: CurrentTimeProvider) {
     }
 
     fun removePerson(name: String) {
-        val person = name2Person[name] ?: return
-        peopleRemoved[person] = timeProvider.getNowNanos()
-    }
-
-    fun addFriendship(from: String, to: String) {
-        val p1 = name2Person[from] ?: return
-        val p2 = name2Person[to] ?: return
-        val friendship = Friendship.instance(p1, p2)
-        synchronized(friendship.p1) {
-            synchronized(friendship.p2) {
-                person2Friendships.computeIfAbsent(p1) { ConcurrentHashMap.newKeySet() }.add(friendship)
-                person2Friendships.computeIfAbsent(p2) { ConcurrentHashMap.newKeySet() }.add(friendship)
-                friendshipsAdded[friendship] = timeProvider.getNowNanos()
-            }
+        val person = getPersonIfExists(name) ?: return
+        val now = timeProvider.getNowNanos()
+        peopleRemoved[person] = now
+        person2Friendships[person]?.filter { doesExist(it) }?.forEach { fr ->
+            friendshipsRemoved[fr] = now
         }
     }
 
+    fun addFriendship(from: String, to: String) {
+        val p1 = getOrCreatePerson(from)
+        val p2 = getOrCreatePerson(to)
+        val friendship = Friendship.instance(p1, p2)
+        friendshipsAdded[friendship] = timeProvider.getNowNanos()
+        friendshipsRemoved.remove(friendship)
+        person2Friendships.computeIfAbsent(p1) { ConcurrentHashMap.newKeySet() }.add(friendship)
+        person2Friendships.computeIfAbsent(p2) { ConcurrentHashMap.newKeySet() }.add(friendship)
+    }
+
     fun removeFriendship(fromName: String, toName: String) {
-        val p1 = name2Person[fromName] ?: return
-        val p2 = name2Person[toName] ?: return
-        friendshipsRemoved[Friendship.instance(p1, p2)] = timeProvider.getNowNanos()
+        val friendship = Friendship.instance(Person(fromName), Person(toName))
+        friendshipsRemoved[friendship] = timeProvider.getNowNanos()
+    }
+
+    private fun getPersonIfExists(name: String): Person? {
+        val person = Person(name)
+        if (!doesExist(person)) return null
+        return person
+    }
+
+    private fun getOrCreatePerson(name: String): Person {
+        return getPersonIfExists(name) ?: addPerson(name)
     }
 
     private fun doesExist(person: Person): Boolean =
