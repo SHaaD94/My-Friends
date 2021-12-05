@@ -2,8 +2,11 @@ package com.github.shaad.myfriends.domain
 
 data class AddPersonRequest(val name: String)
 data class DoesPersonExistRequest(val name: String)
+data class DoesPersonExistResponse(val exists: Boolean)
 data class GetFriendsRequest(val name: String)
+data class GetFriendsResponse(val friends: List<String>)
 data class GetHandshakesRequest(val p1: String, val p2: String)
+data class GetHandshakesResponse(val handshakes: List<String>)
 data class RemovePersonRequest(val name: String)
 data class AddFriendshipRequest(val firstPerson: String, val secondPerson: String)
 data class RemoveFriendshipRequest(val firstPerson: String, val secondPerson: String)

@@ -6,7 +6,7 @@ import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
 
 @QuarkusTest
-class AddEndpointTest {
+class TwoInstanceFunctionalTest {
 
     @Test
     fun `Should properly add friend`() {
