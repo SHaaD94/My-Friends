@@ -4,23 +4,21 @@ import com.github.shaad.myfriends.domain.Friendship
 import com.github.shaad.myfriends.domain.Person
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.atomic.AtomicLong
 import javax.enterprise.context.ApplicationScoped
 
 @ApplicationScoped
 class FriendshipService(private val timeProvider: CurrentTimeProvider) {
-    private val peopleAdded = ConcurrentHashMap<Person, Long>()
-    private val peopleRemoved = ConcurrentHashMap<Person, Long>()
+    private val peopleAdded = ConcurrentHashMap<Person, AtomicLong>()
+    private val peopleRemoved = ConcurrentHashMap<Person, AtomicLong>()
     private val person2Friendships = ConcurrentHashMap<Person, MutableSet<Friendship>>()
-    private val friendshipsAdded = ConcurrentHashMap<Friendship, Long>()
-    private val friendshipsRemoved = ConcurrentHashMap<Friendship, Long>()
+    private val friendshipsAdded = ConcurrentHashMap<Friendship, AtomicLong>()
+    private val friendshipsRemoved = ConcurrentHashMap<Friendship, AtomicLong>()
 
     fun addPerson(name: String): Person {
         val person = Person(name)
-        peopleAdded[person] = timeProvider.getNowNanos()
-        // `now` supposed to be always greater than any data already existed
-        peopleRemoved.remove(person)
-
+        updateTsIfLess(timeProvider.now(), peopleAdded, person)
         return person
     }
 
@@ -84,26 +82,27 @@ class FriendshipService(private val timeProvider: CurrentTimeProvider) {
 
     fun removePerson(name: String) {
         val person = getPersonIfExists(name) ?: return
-        val now = timeProvider.getNowNanos()
-        peopleRemoved[person] = now
-        person2Friendships[person]?.filter { doesExist(it) }?.forEach { fr ->
-            friendshipsRemoved[fr] = now
+        val now = timeProvider.now()
+        updateTsIfLess(now, peopleRemoved, person)
+        person2Friendships[person]?.forEach { fr ->
+            updateTsIfLess(now, friendshipsRemoved, fr)
         }
     }
 
     fun addFriendship(from: String, to: String) {
-        val p1 = getOrCreatePerson(from)
-        val p2 = getOrCreatePerson(to)
+        val p1 = Person(from)
+        val p2 = Person(to)
         val friendship = Friendship.instance(p1, p2)
-        friendshipsAdded[friendship] = timeProvider.getNowNanos()
-        friendshipsRemoved.remove(friendship)
+        val now = timeProvider.now()
+        updateTsIfLess(now, friendshipsAdded, friendship)
         person2Friendships.computeIfAbsent(p1) { ConcurrentHashMap.newKeySet() }.add(friendship)
         person2Friendships.computeIfAbsent(p2) { ConcurrentHashMap.newKeySet() }.add(friendship)
     }
 
     fun removeFriendship(fromName: String, toName: String) {
         val friendship = Friendship.instance(Person(fromName), Person(toName))
-        friendshipsRemoved[friendship] = timeProvider.getNowNanos()
+        val now = timeProvider.now()
+        updateTsIfLess(now, friendshipsRemoved, friendship)
     }
 
     private fun getPersonIfExists(name: String): Person? {
@@ -112,18 +111,22 @@ class FriendshipService(private val timeProvider: CurrentTimeProvider) {
         return person
     }
 
-    private fun getOrCreatePerson(name: String): Person {
-        return getPersonIfExists(name) ?: addPerson(name)
-    }
-
     private fun doesExist(person: Person): Boolean =
-        peopleRemoved.getOrDefault(person, Long.MIN_VALUE) < peopleAdded.getOrDefault(person, Long.MIN_VALUE)
+        (peopleRemoved[person]?.get() ?: Long.MIN_VALUE) < (peopleAdded[person]?.get() ?: Long.MIN_VALUE)
 
     private fun doesExist(friendship: Friendship): Boolean {
         if (!doesExist(friendship.p1) || !doesExist(friendship.p2)) return false
-        return friendshipsRemoved.getOrDefault(friendship, Long.MIN_VALUE) < friendshipsAdded.getOrDefault(
-            friendship, Long.MIN_VALUE
-        )
+        return (friendshipsRemoved[friendship]?.get() ?: Long.MIN_VALUE) < (friendshipsAdded[friendship]?.get()
+            ?: Long.MIN_VALUE)
+    }
+
+    private fun <K> updateTsIfLess(now: Long, map: ConcurrentMap<K, AtomicLong>, key: K) {
+        val lastAdded = map.computeIfAbsent(key) { AtomicLong(0) }
+        var prevValue = lastAdded.get()
+
+        while (prevValue > now || !lastAdded.compareAndSet(prevValue, now)) {
+            prevValue = lastAdded.get()
+        }
     }
 }
 

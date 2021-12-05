@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 class FriendshipServiceTest {
     private val monotonicallyIncreasingTimeProvider = object : CurrentTimeProvider {
         private val now = AtomicLong(0)
-        override fun getNowNanos(): Long = now.incrementAndGet()
+        override fun now(): Long = now.incrementAndGet()
     }
     private val service = FriendshipService(monotonicallyIncreasingTimeProvider)
 
@@ -40,6 +40,24 @@ class FriendshipServiceTest {
 
         assertEquals(listOf("b", "c"), service.getFriends("a"))
         assertEquals(listOf("d"), service.getFriends("e"))
+    }
+
+    @Test
+    fun `If friend removed, friendships must be removed as well`() {
+        service.addPerson("a")
+        service.addPerson("b")
+        service.addPerson("c")
+        service.addFriendship("a", "b")
+        service.addFriendship("c", "b")
+        service.removePerson("b")
+
+        assertEquals(emptyList(), service.getFriends("a"))
+        assertEquals(emptyList(), service.getFriends("c"))
+
+        service.addPerson("b")
+
+        assertEquals(emptyList(), service.getFriends("a"))
+        assertEquals(emptyList(), service.getFriends("c"))
     }
 
     @Test
