@@ -1,8 +1,12 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="MainDev" type="JetRunConfigurationType" singleton="false">
+  <configuration default="false" name="Main" type="JetRunConfigurationType" singleton="false">
+    <envs>
+      <env name="SYNC_INSTANCES" value="http://127.0.0.1:8081" />
+    </envs>
     <option name="MAIN_CLASS_NAME" value="com.github.shaad.myfriends.MainKt" />
     <module name="myfriends.main" />
     <shortenClasspath name="NONE" />
+    <option name="VM_PARAMETERS" value="-Dquarkus.profile=prod" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

@@ -2,6 +2,7 @@ package com.github.shaad.myfriends.service
 
 import com.github.shaad.myfriends.domain.*
 import com.github.shaad.myfriends.util.WithLogger
+import org.eclipse.microprofile.config.inject.ConfigProperty
 import org.jboss.logging.Logger
 import java.util.*
 import java.util.concurrent.*
@@ -22,7 +23,10 @@ class FriendshipService(
     private val friendshipsRemoved = ConcurrentHashMap<Friendship, AtomicLong>()
     private val schedulerES = Executors.newSingleThreadScheduledExecutor()
     private val lastSyncDate = AtomicLong(0)
-    private val schedulingTask = schedulerES.schedule({ sync() }, 1, TimeUnit.MINUTES)
+
+    @ConfigProperty(name = "sync.frequency")
+    private var syncFrequency: Long = 60
+    private lateinit var schedulingTask: ScheduledFuture<*>
 
     fun addPerson(name: String): Person {
         val person = Person(name)
@@ -143,33 +147,42 @@ class FriendshipService(
     }
 
     fun sync() {
-        val now = timeProvider.now()
-        var maxTs = now
+        var maxTs = lastSyncDate.get()
         try {
             log().info("Starting sync")
-            syncManager.getUpdates(now).forEach { event ->
-                maxTs = max(maxTs, event.ts)
-                when (event) {
-                    is AddPersonEvent -> updateTsIfLess(event.ts, peopleAdded, Person(event.name))
-                    is RemovePersonEvent -> updateTsIfLess(event.ts, peopleRemoved, Person(event.name))
-                    is AddFriendshipEvent -> {
-                        val fr = Friendship.instance(Person(event.from), Person(event.to))
-                        updateTsIfLess(event.ts, friendshipsAdded, fr)
-                        person2Friendships.computeIfAbsent(fr.p1) { ConcurrentHashMap.newKeySet() }.add(fr)
-                        person2Friendships.computeIfAbsent(fr.p2) { ConcurrentHashMap.newKeySet() }.add(fr)
+            var eventsCounter = 0
+            syncManager.getUpdates(maxTs)
+                .onEach {
+                    maxTs = max(maxTs, it.ts)
+                    eventsCounter += 1
+                }.forEach { event ->
+                    when (event) {
+                        is AddPersonEvent -> updateTsIfLess(event.ts, peopleAdded, Person(event.name))
+                        is RemovePersonEvent -> updateTsIfLess(event.ts, peopleRemoved, Person(event.name))
+                        is AddFriendshipEvent -> {
+                            val fr = Friendship.instance(Person(event.from), Person(event.to))
+                            updateTsIfLess(event.ts, friendshipsAdded, fr)
+                            person2Friendships.computeIfAbsent(fr.p1) { ConcurrentHashMap.newKeySet() }.add(fr)
+                            person2Friendships.computeIfAbsent(fr.p2) { ConcurrentHashMap.newKeySet() }.add(fr)
+                        }
+                        is RemoveFriendshipEvent -> updateTsIfLess(
+                            event.ts,
+                            friendshipsRemoved,
+                            Friendship.instance(Person(event.from), Person(event.to))
+                        )
                     }
-                    is RemoveFriendshipEvent -> updateTsIfLess(
-                        event.ts,
-                        friendshipsRemoved,
-                        Friendship.instance(Person(event.from), Person(event.to))
-                    )
                 }
-            }
-            lastSyncDate.set(now)
+            log().info("Sync completed - processed $eventsCounter events")
+            lastSyncDate.set(maxTs + 1)
         } catch (e: Exception) {
             log().error("Failed to sync", e)
         }
 
+    }
+
+    fun startSync() {
+        log().info("Start sync scheduler")
+        schedulingTask = schedulerES.scheduleAtFixedRate({ sync() }, syncFrequency, syncFrequency, TimeUnit.SECONDS)
     }
 
     fun stop() = schedulingTask.cancel(true)
