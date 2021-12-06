@@ -130,10 +130,10 @@ class FriendshipService(
     }
 
     private fun <K> updateTsIfLess(now: Long, map: ConcurrentMap<K, AtomicLong>, key: K) {
-        val lastAdded = map.computeIfAbsent(key) { AtomicLong(0) }
+        val lastAdded = map.computeIfAbsent(key) { AtomicLong(Long.MIN_VALUE) }
         var prevValue = lastAdded.get()
 
-        while (prevValue > now || !lastAdded.compareAndSet(prevValue, now)) {
+        while (now > prevValue && !lastAdded.compareAndSet(prevValue, now)) {
             prevValue = lastAdded.get()
         }
     }

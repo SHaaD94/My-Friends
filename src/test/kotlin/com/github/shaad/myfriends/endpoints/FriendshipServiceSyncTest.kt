@@ -9,11 +9,19 @@ import org.junit.jupiter.api.Test
 
 class FriendshipServiceSyncTest {
     private val manualTimeProvider = object : CurrentTimeProvider {
-        val now = 0L
+        var now = 0L
         override fun now(): Long = now
     }
     private val service =
         FriendshipService(manualTimeProvider, InMemoryEventLogService())
+
+    @Test
+    fun `Must not update ts if it is less`(){
+        manualTimeProvider.now = 10
+        service.addPerson("a")
+        manualTimeProvider.now = 0
+        service.addPerson("a")
+    }
 
     @Test
     fun `Must properly sync`() {
