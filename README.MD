@@ -4,6 +4,12 @@ Example CRDT LWW Graph implementation
 
 ----
 
+### Try it out
+```
+docker-compose up
+```
+There will be 3 instances deployed - ports 8080, 8081, 8082
+
 ### Env Variables:
 ```
 APP_PORT - server http port, default 8080

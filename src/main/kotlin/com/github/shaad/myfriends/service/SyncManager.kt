@@ -39,6 +39,7 @@ class CrossServiceSyncManager @Inject constructor(
     }
 
     private fun sync() {
+        if (instancesListProvider.getServerList().isEmpty()) return
         val lastSynced = lastSyncDate.get()
         var maxTs = lastSynced
         try {

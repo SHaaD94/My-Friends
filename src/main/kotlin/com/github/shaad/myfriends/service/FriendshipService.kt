@@ -24,7 +24,7 @@ class FriendshipService(
         val person = Person(name)
         val now = timeProvider.now()
         eventLogService.writeEvent(AddPersonEvent(now, name))
-        updateTsIfLess(now, peopleAdded, person)
+        updateTsIfGreater(now, peopleAdded, person)
         return person
     }
 
@@ -90,9 +90,9 @@ class FriendshipService(
         val person = getPersonIfExists(name) ?: return
         val now = timeProvider.now()
         eventLogService.writeEvent(RemovePersonEvent(now, name))
-        updateTsIfLess(now, peopleRemoved, person)
+        updateTsIfGreater(now, peopleRemoved, person)
         person2Friendships[person]?.forEach { fr ->
-            updateTsIfLess(now, friendshipsRemoved, fr)
+            updateTsIfGreater(now, friendshipsRemoved, fr)
         }
     }
 
@@ -102,7 +102,7 @@ class FriendshipService(
         val friendship = Friendship.instance(p1, p2)
         val now = timeProvider.now()
         eventLogService.writeEvent(AddFriendshipEvent(now, from, to))
-        updateTsIfLess(now, friendshipsAdded, friendship)
+        updateTsIfGreater(now, friendshipsAdded, friendship)
         person2Friendships.computeIfAbsent(p1) { ConcurrentHashMap.newKeySet() }.add(friendship)
         person2Friendships.computeIfAbsent(p2) { ConcurrentHashMap.newKeySet() }.add(friendship)
     }
@@ -111,7 +111,7 @@ class FriendshipService(
         val friendship = Friendship.instance(Person(fromName), Person(toName))
         val now = timeProvider.now()
         eventLogService.writeEvent(RemoveFriendshipEvent(now, fromName, toName))
-        updateTsIfLess(now, friendshipsRemoved, friendship)
+        updateTsIfGreater(now, friendshipsRemoved, friendship)
     }
 
     private fun getPersonIfExists(name: String): Person? {
@@ -129,7 +129,7 @@ class FriendshipService(
             ?: Long.MIN_VALUE)
     }
 
-    private fun <K> updateTsIfLess(now: Long, map: ConcurrentMap<K, AtomicLong>, key: K) {
+    private fun <K> updateTsIfGreater(now: Long, map: ConcurrentMap<K, AtomicLong>, key: K) {
         val lastAdded = map.computeIfAbsent(key) { AtomicLong(Long.MIN_VALUE) }
         var prevValue = lastAdded.get()
 
@@ -140,15 +140,15 @@ class FriendshipService(
 
     fun feedEvent(event: Event) {
         when (event) {
-            is AddPersonEvent -> updateTsIfLess(event.ts, peopleAdded, Person(event.name))
-            is RemovePersonEvent -> updateTsIfLess(event.ts, peopleRemoved, Person(event.name))
+            is AddPersonEvent -> updateTsIfGreater(event.ts, peopleAdded, Person(event.name))
+            is RemovePersonEvent -> updateTsIfGreater(event.ts, peopleRemoved, Person(event.name))
             is AddFriendshipEvent -> {
                 val fr = Friendship.instance(Person(event.from), Person(event.to))
-                updateTsIfLess(event.ts, friendshipsAdded, fr)
+                updateTsIfGreater(event.ts, friendshipsAdded, fr)
                 person2Friendships.computeIfAbsent(fr.p1) { ConcurrentHashMap.newKeySet() }.add(fr)
                 person2Friendships.computeIfAbsent(fr.p2) { ConcurrentHashMap.newKeySet() }.add(fr)
             }
-            is RemoveFriendshipEvent -> updateTsIfLess(
+            is RemoveFriendshipEvent -> updateTsIfGreater(
                 event.ts,
                 friendshipsRemoved,
                 Friendship.instance(Person(event.from), Person(event.to))
