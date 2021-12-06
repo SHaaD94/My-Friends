@@ -19,6 +19,7 @@ plugins {
     id("io.quarkus") version "2.5.1.Final"
     id("org.graalvm.buildtools.native") version "0.9.8"
     id("org.jetbrains.kotlin.plugin.allopen") version "1.5.10"
+    id("org.openapi.generator") version "4.2.2"
     application
 }
 
@@ -40,11 +41,13 @@ dependencies {
     implementation(enforcedPlatform("io.quarkus:quarkus-bom:${Versions.quarkusVersion}"))
     implementation("io.quarkus:quarkus-resteasy-jackson")
     implementation("io.quarkus:quarkus-rest-client")
+    implementation("io.quarkus:quarkus-smallrye-openapi")
     implementation("io.quarkus:quarkus-kotlin")
     implementation("io.quarkus:quarkus-config-yaml")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("io.quarkus:quarkus-swagger-ui")
 
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
@@ -66,12 +69,7 @@ tasks.withType<KotlinCompile> {
     kotlinOptions.freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
     kotlinOptions.javaParameters = true
 }
-//quarkusBuild {
-//    nativeArgs {
-//        containerBuild = true
-//        buildImage = "quay.io/quarkus/ubi-quarkus-native-image:21.3.0-java11"
-//    }
-//}
+
 application {
     mainClass.set("com.github.shaad.myfriends.MainKt")
 }
