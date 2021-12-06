@@ -1,6 +1,6 @@
 # My Friends
 
-Example CRDT LWW Graph implementation 
+Example LWW Graph implementation 
 
 ----
 
