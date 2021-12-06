@@ -1,6 +1,8 @@
 package com.github.shaad.myfriends
 
+import com.github.shaad.myfriends.service.CrossServiceSyncManager
 import com.github.shaad.myfriends.service.FriendshipService
+import com.github.shaad.myfriends.service.SyncManager
 import io.quarkus.runtime.Quarkus
 import io.quarkus.runtime.Startup
 import javax.enterprise.context.ApplicationScoped
@@ -12,8 +14,8 @@ fun main(args: Array<String>) {
 
 @Startup
 @ApplicationScoped
-class AppInitializer @Inject constructor(friendshipService: FriendshipService) {
+class AppInitializer @Inject constructor(syncManager: SyncManager) {
     init {
-        friendshipService.startSync()
+        syncManager.startSync()
     }
 }
