@@ -1,6 +1,5 @@
 package com.github.shaad.myfriends.service
 
-import com.github.shaad.myfriends.domain.Event
 import com.github.shaad.myfriends.util.WithLogger
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import java.lang.Long.max
@@ -39,10 +38,10 @@ class CrossServiceSyncManager @Inject constructor(
     }
 
     private fun sync() {
-        if (instancesListProvider.getServerList().isEmpty()) return
-        val lastSynced = lastSyncDate.get()
-        var maxTs = lastSynced
         try {
+            if (instancesListProvider.getServerList().isEmpty()) return
+            val lastSynced = lastSyncDate.get()
+            var maxTs = lastSynced
             log().info("Starting sync")
             var eventsCounter = 0
             instancesListProvider.getServerList().asSequence().flatMap { server ->

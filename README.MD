@@ -5,8 +5,7 @@ Example CRDT LWW Graph implementation
 ----
 
 ### Documentation
-Documentation is available on  
-http://127.0.0.1:8080/q/swagger-ui/
+Documentation will be available on http://127.0.0.1:8080/q/swagger-ui/
 
 ### Try it out
 ```
