@@ -15,7 +15,7 @@ buildscript {
 }
 
 plugins {
-    kotlin("jvm") version "1.5.10"
+    kotlin("jvm") version "1.5.32"
     id("io.quarkus") version "2.5.1.Final"
     id("org.graalvm.buildtools.native") version "0.9.8"
     id("org.jetbrains.kotlin.plugin.allopen") version "1.5.10"
@@ -26,7 +26,7 @@ group = "com.github.shaad"
 version = "1.0"
 
 object Versions {
-    const val kotlinVersion = "1.5.10"
+    const val kotlinVersion = "1.5.32"
     const val quarkusVersion = "2.5.1.Final"
 }
 
@@ -66,7 +66,12 @@ tasks.withType<KotlinCompile> {
     kotlinOptions.freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
     kotlinOptions.javaParameters = true
 }
-
+//quarkusBuild {
+//    nativeArgs {
+//        containerBuild = true
+//        buildImage = "quay.io/quarkus/ubi-quarkus-native-image:21.3.0-java11"
+//    }
+//}
 application {
     mainClass.set("com.github.shaad.myfriends.MainKt")
 }

@@ -9,13 +9,14 @@ interface InstancesListProvider {
 
 @ApplicationScoped
 class ConfigBasedInstancesListProvider : InstancesListProvider {
-    @ConfigProperty(name = "sync.instances")
-    var rawConfigValue: String = ""
+    @ConfigProperty(name = "sync.instances", defaultValue = "")
+    var rawConfigValue: String? = null
     val parsedServerList: List<String> by lazy {
         rawConfigValue
-            .split(",")
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
+            ?.split(",")
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            ?: emptyList()
     }
 
     override fun getServerList(): List<String> = parsedServerList

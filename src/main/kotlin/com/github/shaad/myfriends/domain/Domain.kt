@@ -3,16 +3,17 @@ package com.github.shaad.myfriends.domain
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 
-data class AddPersonRequest(val name: String)
-data class DoesPersonExistRequest(val name: String)
-data class DoesPersonExistResponse(val exists: Boolean)
-data class GetFriendsRequest(val name: String)
-data class GetFriendsResponse(val friends: List<String>)
-data class GetHandshakesRequest(val p1: String, val p2: String)
-data class GetHandshakesResponse(val handshakes: List<String>)
-data class RemovePersonRequest(val name: String)
-data class AddFriendshipRequest(val firstPerson: String, val secondPerson: String)
-data class RemoveFriendshipRequest(val firstPerson: String, val secondPerson: String)
+// FIXME - ALL VARS AND DEFAULT VARIABLES HERE ARE WORKAROUND OF NATIVE IMAGE JACKSON KOTLIN REFLECTION ISSUES
+data class AddPersonRequest(var name: String = "")
+data class DoesPersonExistRequest(var name: String = "")
+data class DoesPersonExistResponse(var exists: Boolean = false)
+data class GetFriendsRequest(var name: String = "")
+data class GetFriendsResponse(var friends: List<String> = emptyList())
+data class GetHandshakesRequest(var p1: String = "", var p2: String = "")
+data class GetHandshakesResponse(var handshakes: List<String> = emptyList())
+data class RemovePersonRequest(var name: String = "")
+data class AddFriendshipRequest(var firstPerson: String = "", var secondPerson: String = "")
+data class RemoveFriendshipRequest(var firstPerson: String = "", var secondPerson: String = "")
 
 data class Person constructor(val name: String) : Comparable<Person> {
     override fun compareTo(other: Person): Int = name.compareTo(other.name)
@@ -25,9 +26,7 @@ data class Friendship private constructor(val p1: Person, val p2: Person) {
 }
 
 @JsonTypeInfo(
-    use = JsonTypeInfo.Id.NAME,
-    include = JsonTypeInfo.As.PROPERTY,
-    property = "type"
+    use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type"
 )
 @JsonSubTypes(
     JsonSubTypes.Type(value = AddPersonEvent::class, name = "addPersonEvent"),
@@ -35,9 +34,9 @@ data class Friendship private constructor(val p1: Person, val p2: Person) {
     JsonSubTypes.Type(value = AddFriendshipEvent::class, name = "addFriendshipEvent"),
     JsonSubTypes.Type(value = RemoveFriendshipEvent::class, name = "removeFriendshipEvent")
 )
-sealed class Event(open val ts: Long)
-data class AddPersonEvent(override val ts: Long, val name: String) : Event(ts)
-data class RemovePersonEvent(override val ts: Long, val name: String) : Event(ts)
-data class AddFriendshipEvent(override val ts: Long, val from: String, val to: String) : Event(ts)
-data class RemoveFriendshipEvent(override val ts: Long, val from: String, val to: String) : Event(ts)
+sealed class Event(open var ts: Long = 0)
+data class AddPersonEvent(override var ts: Long = 0, var name: String = "") : Event(ts)
+data class RemovePersonEvent(override var ts: Long = 0, var name: String = "") : Event(ts)
+data class AddFriendshipEvent(override var ts: Long = 0, var from: String = "", var to: String = "") : Event(ts)
+data class RemoveFriendshipEvent(override var ts: Long = 0, var from: String = "", var to: String = "") : Event(ts)
 
